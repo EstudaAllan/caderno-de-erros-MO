@@ -248,7 +248,7 @@ a.btn{text-decoration:none;color:inherit}
           <div class="sn">2</div>
           <div class="sb">
             <h3>Copie o pedido e cole na sua IA</h3>
-            <p class="muted" style="margin:0 0 10px">O botão copia a questão já dentro de um pedido pronto. Abra o ChatGPT, o Gemini ou outra IA, cole e envie.</p>
+            <p class="muted" style="margin:0 0 10px">O botão copia a questão já dentro de um pedido pronto. Abra o ChatGPT, o Gemini ou outra IA, cole e envie. A IA vai responder dentro de um bloco de código.</p>
             <div class="row">
               <button class="btn primary" type="button" id="copyPrompt">Copiar pedido para a IA</button>
               <a class="btn" href="https://chatgpt.com/" target="_blank" rel="noopener">Abrir ChatGPT ↗</a>
@@ -266,7 +266,7 @@ a.btn{text-decoration:none;color:inherit}
           <div class="sb">
             <h3>Cole a resposta da IA</h3>
             <label class="sr-only" for="na">Resposta da IA</label>
-            <textarea id="na" placeholder="Cole aqui tudo o que a IA respondeu (pode colar a resposta inteira, o site encontra os cards)."></textarea>
+            <textarea id="na" placeholder="Na resposta da IA, clique no botão de copiar do bloco de código (ícone de copiar ou &quot;Copiar código&quot;) e cole aqui."></textarea>
             <div class="row" style="margin-top:10px">
               <button class="btn primary" type="button" id="readAns">Ler resposta e montar os cards</button>
               <button class="btn" type="button" id="clearNova">Limpar</button>
@@ -601,30 +601,100 @@ ${q.trim()}
 """
 ${marc?`Alternativa que eu marquei: ${marc}\n`:''}
 Produza:
-1. "gabarito": a alternativa correta e o fundamento legal em uma linha. Ex.: "D — art. 60, III, CF".
-2. "comentario": curto (até ~150 palavras). Primeiro, por que a correta está certa (1-2 frases). Depois, uma linha por alternativa errada dizendo onde está a pegadinha, no formato "**A:** ...". Use **negrito** só nas palavras-chave. Se houver dúvida real sobre o gabarito ou sobre a lei ou jurisprudência atual, diga.
-3. "materia": exatamente um destes nomes: ${TAX.map(t=>t[0]).join(', ')}.
-4. "assunto": de preferência um dos assuntos listados abaixo para a matéria; se nenhum servir, um nome curto novo.
-5. "cards": 1 a 3 flashcards neste formato:
-   - "frente": proposição curta que nomeia o tema, sem pergunta longa e sem copiar o enunciado. Ex.: "Emenda à CF por iniciativa das Assembleias: requisitos"; "Honorários abaixo de 10%: hipóteses no CPC".
-   - "verso": só as regras ou requisitos, enumerados "(1) ...; (2) ...; (3) ...", com o dispositivo entre parênteses e números, prazos e quóruns em **negrito**. Sem explicação longa.
+1. Gabarito: a alternativa correta e o fundamento legal em uma linha. Ex.: "D — art. 60, III, CF".
+2. Comentário: curto (até ~150 palavras). Primeiro, por que a correta está certa (1-2 frases). Depois, uma linha por alternativa errada dizendo onde está a pegadinha, no formato "**A:** ...". Use **negrito** só nas palavras-chave. Se houver dúvida real sobre o gabarito ou sobre a lei ou jurisprudência atual, diga.
+3. Matéria: exatamente um destes nomes: ${TAX.map(t=>t[0]).join(', ')}.
+4. Assunto: de preferência um dos assuntos listados abaixo para a matéria; se nenhum servir, um nome curto novo.
+5. Cards: 1 a 3 flashcards, cada um com:
+   - Frente: proposição curta que nomeia o tema, sem pergunta longa e sem copiar o enunciado. Ex.: "Emenda à CF por iniciativa das Assembleias: requisitos"; "Honorários abaixo de 10%: hipóteses no CPC".
+   - Verso: só as regras ou requisitos, enumerados "(1) ...; (2) ...; (3) ...", com o dispositivo entre parênteses e números, prazos e quóruns em **negrito**. Sem explicação longa.
    - Se o erro vem de confundir dois institutos parecidos, inclua um card "Par-pegadinha: X × Y" com as duas regras lado a lado.
-   - "dispositivo": o artigo principal, ex.: "art. 60, III, CF".
-   - "macete": um macete curto, se houver um bom; senão "".
+   - Dispositivo: o artigo principal, ex.: "art. 60, III, CF".
+   - Macete: um macete curto, se houver um bom; senão deixe em branco.
 
 Assuntos por matéria:
 ${tax}
 
 Considere a legislação vigente e a jurisprudência atual do STF e do STJ.
-Responda SOMENTE com um bloco JSON, sem texto antes ou depois, neste formato:
-{"gabarito":"...","comentario":"...","materia":"...","assunto":"...","cards":[{"frente":"...","verso":"...","dispositivo":"...","macete":""}]}`;
+
+FORMATO DA RESPOSTA (obrigatório):
+Coloque a resposta inteira dentro de UM único bloco de código (entre \`\`\` e \`\`\`), exatamente neste modelo de texto, sem tabelas, sem JSON e sem nada fora do bloco:
+
+\`\`\`
+GABARITO: D — art. 60, III, CF
+COMENTÁRIO: texto do comentário (pode ocupar várias linhas)
+MATÉRIA: Constitucional
+ASSUNTO: Reforma constitucional
+
+=== CARD ===
+FRENTE: texto da frente
+VERSO: (1) ...; (2) ...
+DISPOSITIVO: art. 60, III, CF
+MACETE: 
+
+=== CARD ===
+FRENTE: ...
+VERSO: ...
+DISPOSITIVO: ...
+MACETE: ...
+\`\`\``;
 }
-function extractJSON(txt){
-  let t=String(txt||'').trim();
-  const fence=t.match(/```(?:json)?\s*([\s\S]*?)```/i);if(fence)t=fence[1];
-  const a=t.indexOf('{'),b=t.lastIndexOf('}');if(a<0||b<=a)throw new Error('sem json');
-  t=t.slice(a,b+1).replace(/[“”]/g,'"');
-  return JSON.parse(t);
+function stripFence(t){const m=t.match(/```[a-zA-Z]*\s*\n?([\s\S]*?)```/);return m?m[1]:t}
+function fixJSON(t){
+  let out='',inStr=false,escp=false;
+  for(const ch of t){
+    if(inStr){
+      if(escp){out+=ch;escp=false;continue}
+      if(ch==='\\'){out+=ch;escp=true;continue}
+      if(ch==='"'){inStr=false;out+=ch;continue}
+      if(ch==='\n'){out+='\\n';continue}
+      if(ch==='\r'){continue}
+      if(ch==='\t'){out+='\\t';continue}
+      out+=ch;
+    }else{if(ch==='"')inStr=true;out+=ch}
+  }
+  return out.replace(/,\s*([}\]])/g,'$1');
+}
+function tryJSON(txt){
+  let t=stripFence(String(txt||'')).replace(/[“”]/g,'"');
+  const a=t.indexOf('{'),b=t.lastIndexOf('}');if(a<0||b<=a)return null;
+  t=t.slice(a,b+1);
+  try{return JSON.parse(t)}catch(e){}
+  try{return JSON.parse(fixJSON(t))}catch(e){return null}
+}
+const KEYS={gabarito:'gabarito',comentario:'comentario',comentarios:'comentario',materia:'materia',disciplina:'materia',assunto:'assunto',tema:'assunto',frente:'frente',verso:'verso',dispositivo:'dispositivo',fundamento:'dispositivo',macete:'macete'};
+function parseText(txt){
+  let t=String(txt||'');if(/```/.test(t))t=stripFence(t);
+  const o={gabarito:'',comentario:'',materia:'',assunto:'',cards:[]};let cur=null,key=null;
+  const labelRe=/^\s*(?:[-*•>#]+\s*)?\**_*\s*([A-Za-zÀ-ÿ]+)\s*\d*\s*\**_*\s*[:：]\s*\**_*\s*(.*)$/;
+  const sepRe=/^\s*(?:[=#*\-_]+\s*)?(?:\**\s*)?card\s*\d*\s*(?:\**)?\s*(?:[=#*\-_:]+)?\s*$/i;
+  for(const raw of t.split(/\r?\n/)){
+    const line=raw.replace(/\s+$/,'');
+    if(sepRe.test(line)){cur={frente:'',verso:'',dispositivo:'',macete:''};o.cards.push(cur);key=null;continue}
+    const m=line.match(labelRe);
+    const k=m?KEYS[norm(m[1])]:null;
+    if(k){
+      let val=m[2].replace(/\**\s*$/,'').trim();
+      if(['frente','verso','dispositivo','macete'].includes(k)){
+        if(!cur||(k==='frente'&&cur.frente)){cur={frente:'',verso:'',dispositivo:'',macete:''};o.cards.push(cur)}
+        cur[k]=val;key=['card',k];
+      }else{o[k]=val;key=['top',k]}
+      continue;
+    }
+    if(!key)continue;
+    if(key[0]==='card'){cur[key[1]]+=(cur[key[1]]?'\n':'')+line.trim()}
+    else{o[key[1]]+=(o[key[1]]?'\n':'')+line}
+  }
+  o.comentario=o.comentario.replace(/\n{3,}/g,'\n\n').trim();
+  o.cards=o.cards.map(c=>({frente:c.frente.trim(),verso:c.verso.replace(/\n+/g,' ').trim(),dispositivo:c.dispositivo.trim(),macete:c.macete.trim()})).filter(c=>c.frente&&c.verso);
+  return o;
+}
+function extractCards(txt){
+  const j=tryJSON(txt);
+  if(j&&Array.isArray(j.cards)&&j.cards.length)return j;
+  const p=parseText(txt);
+  if(p.cards.length)return p;
+  throw new Error('sem cards');
 }
 let PV=null; // prévia em edição
 function renderPreview(){
@@ -870,7 +940,7 @@ function bind(){
   };
   $('#readAns').onclick=()=>{
     const t=$('#na').value.trim();if(!t){toast('Cole a resposta da IA primeiro');$('#na').focus();return}
-    let o;try{o=extractJSON(t)}catch(e){toast('Não encontrei os cards na resposta. Copie a resposta inteira da IA e tente de novo.');return}
+    let o;try{o=extractCards(t)}catch(e){toast('Não encontrei os cards na resposta. Confira se copiou a resposta inteira (use o botão de copiar do bloco de código da IA).');return}
     const cards=Array.isArray(o.cards)?o.cards:[];
     if(!cards.length){toast('A resposta não trouxe cards. Peça à IA para refazer no formato pedido.');return}
     PV={gabarito:String(o.gabarito||''),comentario:String(o.comentario||''),materia:String(o.materia||''),assunto:String(o.assunto||''),
