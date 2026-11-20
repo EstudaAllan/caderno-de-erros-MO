@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meu Caderno de Erros</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+/* Layout: barra lateral de navegação + área de trabalho, no padrão dos sites de súmulas e informativos; cada matéria tem sua cor */
+:root{
+  --bg:#eef0f3; --surface:#ffffff; --surface-2:#f6f7f9; --ink:#18202e; --muted:#5b6578; --line:#d8dde5;
+  --accent:#2a4d8f; --accent-ink:#ffffff; --brass:#a87405;
+  --ok:#2f7d4f; --warn:#b4690e; --bad:#b23a3a;
+  --mark:#fde9a8;
+  --f-display:"Source Serif 4", Georgia, "Times New Roman", serif;
+  --f-body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --radius:10px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10141b; --surface:#171d27; --surface-2:#1d2430; --ink:#e6e9ef; --muted:#9aa4b5; --line:#2b3443;
+    --accent:#86a8ea; --accent-ink:#0f1726; --brass:#e2b24c;
+    --ok:#5bbf83; --warn:#e3a14a; --bad:#e57373;
+    --mark:#5a4a12;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10141b; --surface:#171d27; --surface-2:#1d2430; --ink:#e6e9ef; --muted:#9aa4b5; --line:#2b3443;
+  --accent:#86a8ea; --accent-ink:#0f1726; --brass:#e2b24c;
+  --ok:#5bbf83; --warn:#e3a14a; --bad:#e57373;
+  --mark:#5a4a12;
+  color-scheme: dark;
+}
+/* cor da matéria: --ml (tema claro) e --md (tema escuro), definidas por elemento */
+[style*="--ml"]{--tc:var(--ml)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) [style*="--ml"]{--tc:var(--md)}}
+:root[data-theme="dark"] [style*="--ml"]{--tc:var(--md)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+a{color:var(--accent)}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.2}
+.app{display:grid;grid-template-columns:232px 1fr;min-height:100%}
+/* barra lateral */
+.side{background:var(--surface);border-right:1px solid var(--line);padding:22px 16px;display:flex;flex-direction:column;gap:22px;position:sticky;top:0;height:100vh;overflow:auto}
+.brand h1{font-size:21px}
+.brand p{margin:4px 0 0;color:var(--muted);font-size:12.5px}
+.overall{display:grid;gap:6px}
+.overall .lbl{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)}
+.overall .lbl b{color:var(--ink);font-variant-numeric:tabular-nums}
+.bar{height:7px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .3s}
+nav.views{display:flex;flex-direction:column;gap:2px}
+nav.views a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;color:var(--ink);text-decoration:none;font-weight:500}
+nav.views a .ic{width:20px;text-align:center;color:var(--muted)}
+nav.views a .cnt{margin-left:auto;font-size:12px;font-variant-numeric:tabular-nums;background:var(--surface-2);border:1px solid var(--line);border-radius:99px;padding:0 7px;color:var(--muted)}
+nav.views a:hover{background:var(--surface-2)}
+nav.views a[aria-current="page"]{background:var(--accent);color:var(--accent-ink)}
+nav.views a[aria-current="page"] .ic{color:var(--accent-ink)}
+nav.views a[aria-current="page"] .cnt{background:transparent;border-color:color-mix(in srgb,var(--accent-ink) 40%,transparent);color:var(--accent-ink)}
+.sync{margin-top:auto;font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:flex-start}
+.sync .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);margin-top:5px;flex:none}
+.sync.ok .dot{background:var(--ok)}
+.sync.warn .dot{background:var(--warn)}
+main{padding:26px 28px 60px;min-width:0}
+.view{display:none;max-width:1100px}
+.view.on{display:block}
+.vhead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:18px}
+.vhead h2{font-size:28px}
+.vhead p{margin:4px 0 0;color:var(--muted);max-width:62ch}
+/* controles */
+.btn{border:1px solid var(--line);background:var(--surface);padding:7px 12px;border-radius:8px;cursor:pointer;font-weight:500;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,var(--line))}
+.btn.danger.solid{background:var(--bad);color:#fff;border-color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.sm{padding:4px 9px;font-size:13px}
+select,input[type=text],input[type=search],textarea{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+textarea{width:100%;min-height:120px;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+label.f{display:grid;gap:4px;font-size:12.5px;color:var(--muted);font-weight:500}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px;margin-bottom:12px}
+.toolbar .grow{flex:1 1 260px}
+.toolbar .grow input{width:100%}
+.meta-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:6px 2px 12px;color:var(--muted);font-size:13.5px}
+.meta-row b{color:var(--ink);font-variant-numeric:tabular-nums}
+/* matérias */
+.mats{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px}
+.mats button{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:5px 12px 5px 10px;cursor:pointer;font-size:13px;display:flex;gap:7px;align-items:center}
+.mats button:hover{border-color:var(--accent)}
+.mats button[aria-pressed="true"]{border-color:var(--tc,var(--accent));box-shadow:inset 0 0 0 1px var(--tc,var(--accent));font-weight:600}
+.mats button b{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:500}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--tc,var(--muted));flex:none;display:inline-block}
+/* grupos */
+.mgroup{margin-top:24px}
+.mgroup:first-child{margin-top:4px}
+.mhead{display:flex;align-items:center;gap:9px;padding-bottom:6px;border-bottom:2px solid var(--tc);margin-bottom:4px}
+.mhead h3{font-size:20px}
+.mhead .n{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.ahead{font-size:12.5px;color:var(--muted);font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin:16px 0 8px}
+/* cartões */
+.list{display:grid;gap:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--tc);border-radius:var(--radius);padding:14px 16px;display:grid;gap:8px}
+.card .fr{font-family:var(--f-display);font-weight:700;font-size:18px;line-height:1.35;margin:0}
+.card .vs{margin:0;font-size:15px;line-height:1.6;max-width:80ch}
+.card .vs strong{font-weight:600}
+.card .mac{font-size:13.5px;background:color-mix(in srgb,var(--brass) 12%,transparent);border-radius:8px;padding:5px 10px;justify-self:start}
+.card .mac b{color:var(--brass)}
+.card .top{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:1px 8px;font-variant-numeric:tabular-nums}
+.chip.due{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 40%,var(--line));background:color-mix(in srgb,var(--warn) 10%,transparent);font-weight:600}
+.chip.bad{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,var(--line));background:color-mix(in srgb,var(--bad) 10%,transparent);font-weight:600}
+.chip.new{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,var(--line))}
+.card .acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.card .acts .sp{flex:1}
+.qbox{background:var(--surface-2);border-radius:8px;padding:12px 14px;display:grid;gap:8px;font-size:14px;max-width:80ch}
+.qbox .qq{font-family:var(--f-display);font-size:15.5px;line-height:1.55;margin:0}
+.qbox .gb{font-weight:600}
+.qbox p{margin:0}
+.qbox div p + p{margin-top:6px}
+mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px}
+.empty{padding:40px 16px;text-align:center;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:var(--radius)}
+/* painéis e números */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px}
+.panel h3{font-size:18px;margin-bottom:12px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px}
+.tile .k{font-size:12.5px;color:var(--muted);font-weight:500}
+.tile .v{font-family:var(--f-display);font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.15}
+.tile .s{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.tile.today .v{color:var(--warn)} .tile.good .v{color:var(--ok)} .tile.late .v{color:var(--bad)}
+.arow{display:grid;grid-template-columns:minmax(120px,200px) 1fr 54px;gap:10px;align-items:center;font-size:13.5px;padding:4px 0}
+.arow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arow .n{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.arow .bar>i{background:var(--tc,var(--accent))}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;align-items:end;height:110px}
+.week .c{display:grid;grid-template-rows:1fr auto auto;gap:3px;height:100%;text-align:center;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.week .c .col{align-self:end;background:var(--accent);border-radius:4px 4px 0 0;min-height:2px}
+.week .c.t .col{background:var(--warn)}
+.week .c b{color:var(--ink);font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+/* sessão de revisão */
+.overlay{position:fixed;inset:0;background:color-mix(in srgb,#000 55%,transparent);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
+.overlay.on{display:flex}
+.dialog{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;width:min(560px,100%);display:grid;gap:14px;max-height:92vh;overflow:auto}
+.study{width:min(760px,100%)}
+.study .front{border-left:4px solid var(--tc);padding:4px 0 4px 14px;display:grid;gap:6px}
+.study .front .kk{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.05em;text-transform:uppercase;display:flex;gap:7px;align-items:center}
+.study .front .big{font-family:var(--f-display);font-size:25px;font-weight:700;line-height:1.3}
+.study .ans{font-size:16.5px;line-height:1.65;background:var(--surface-2);border-radius:10px;padding:16px 18px}
+.study .ans strong{font-weight:600}
+.study .ans.hid{filter:blur(7px);user-select:none}
+.grades{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.grades button{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 6px;cursor:pointer;display:grid;gap:2px;justify-items:center;font-weight:600}
+.grades button small{font-weight:400;color:var(--muted);font-size:12px}
+.grades button:hover{border-color:var(--accent)}
+.grades button.g0{border-bottom:3px solid var(--bad)}
+.grades button.g1{border-bottom:3px solid var(--warn)}
+.grades button.g2{border-bottom:3px solid var(--ok)}
+.score{display:flex;gap:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:99px;font-size:13.5px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:60}
+.toast.on{opacity:1}
+.loading{padding:60px 0;text-align:center;color:var(--muted)}
+.kbd{font:12px ui-monospace,Menlo,monospace;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;color:var(--muted)}
+.muted{color:var(--muted)}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (max-width:820px){
+  .app{grid-template-columns:1fr}
+  .side{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line);padding:14px 16px;gap:12px}
+  nav.views{flex-direction:row;overflow-x:auto}
+  nav.views a{flex:none;padding:7px 10px}
+  .sync{margin-top:0}
+  main{padding:18px 16px 60px}
+  .arow{grid-template-columns:110px 1fr 44px}
+  .study .front .big{font-size:21px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none !important}}
+
+/* passos da nova questão e prévia */
+.steps{display:grid;gap:12px}
+.step{display:grid;grid-template-columns:34px 1fr;gap:14px;align-items:start}
+.step .sn{width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:700;font-family:var(--f-display)}
+.step h3{font-size:18px;margin:2px 0 10px}
+textarea.prose{font:14.5px/1.55 var(--f-body);min-height:150px}
+#na{min-height:120px}
+.pvcard{border:1px solid var(--line);border-radius:var(--radius);padding:12px;display:grid;gap:8px;background:var(--surface-2)}
+.pvcard input,.pvcard textarea,.dialog input[type=text]{width:100%}
+.sync a{color:inherit;font-weight:600}
+a.btn{text-decoration:none;color:inherit}
+.empty a{font-weight:600}
+@media (max-width:560px){.step{grid-template-columns:1fr}.step .sn{width:26px;height:26px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <h1>Meu Caderno de Erros</h1>
+      <p id="baseInfo">Questões erradas viram cards</p>
+    </div>
+    <div class="overall">
+      <div class="lbl"><span>Revisão de hoje</span><b id="ovPct">0%</b></div>
+      <div class="bar"><i id="ovBar" style="width:0"></i></div>
+      <div class="lbl"><span id="ovDone">0 revisados</span><span id="ovDue"></span></div>
+    </div>
+    <nav class="views" aria-label="Seções">
+      <a href="#nova" data-v="nova"><span class="ic">＋</span>Nova questão</a>
+      <a href="#cards" data-v="cards"><span class="ic">≡</span>Cards<span class="cnt" id="navCards">0</span></a>
+      <a href="#revisao" data-v="revisao"><span class="ic">↻</span>Revisão<span class="cnt" id="navDue">0</span></a>
+      <a href="#painel" data-v="painel"><span class="ic">◎</span>Painel</a>
+      <a href="#backup" data-v="backup"><span class="ic">⇅</span>Backup</a>
+    </nav>
+    <div class="sync" id="sync"><span class="dot"></span><span id="syncTxt">Salvo neste navegador.</span></div>
+  </aside>
+
+  <main>
+    <!-- NOVA QUESTÃO -->
+    <section class="view" id="v-nova" aria-labelledby="h-nova">
+      <div class="vhead">
+        <div>
+          <h2 id="h-nova">Nova questão</h2>
+          <p>Errou ou acertou no chute? Transforme a questão em cards em três passos, usando a IA que você já usa (ChatGPT, Gemini, Claude…).</p>
+        </div>
+        <button class="btn" type="button" id="manualNew">Criar card à mão</button>
+      </div>
+
+      <div class="steps">
+        <div class="panel step">
+          <div class="sn">1</div>
+          <div class="sb">
+            <h3>Cole a questão</h3>
+            <label class="sr-only" for="nq">Questão</label>
+            <textarea id="nq" class="prose" placeholder="Cole aqui o enunciado e as alternativas, do jeito que estão no site de questões."></textarea>
+            <div class="row" style="margin-top:10px">
+              <label class="f" for="nqMarc" style="max-width:240px">Alternativa que você marcou (opcional)<input type="text" id="nqMarc" placeholder="Ex.: B"></label>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel step">
+          <div class="sn">2</div>
+          <div class="sb">
+            <h3>Copie o pedido e cole na sua IA</h3>
+            <p class="muted" style="margin:0 0 10px">O botão copia a questão já dentro de um pedido pronto. Abra o ChatGPT, o Gemini ou outra IA, cole e envie.</p>
+            <div class="row">
+              <button class="btn primary" type="button" id="copyPrompt">Copiar pedido para a IA</button>
+              <a class="btn" href="https://chatgpt.com/" target="_blank" rel="noopener">Abrir ChatGPT ↗</a>
+              <a class="btn" href="https://gemini.google.com/" target="_blank" rel="noopener">Abrir Gemini ↗</a>
+            </div>
+            <details style="margin-top:10px"><summary class="muted" style="cursor:pointer;font-size:13px">Ver o pedido (para copiar manualmente)</summary>
+              <label class="sr-only" for="promptOut">Pedido para a IA</label>
+              <textarea id="promptOut" readonly style="margin-top:8px"></textarea>
+            </details>
+          </div>
+        </div>
+
+        <div class="panel step">
+          <div class="sn">3</div>
+          <div class="sb">
+            <h3>Cole a resposta da IA</h3>
+            <label class="sr-only" for="na">Resposta da IA</label>
+            <textarea id="na" placeholder="Cole aqui tudo o que a IA respondeu (pode colar a resposta inteira, o site encontra os cards)."></textarea>
+            <div class="row" style="margin-top:10px">
+              <button class="btn primary" type="button" id="readAns">Ler resposta e montar os cards</button>
+              <button class="btn" type="button" id="clearNova">Limpar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="preview"></div>
+    </section>
+
+    <!-- CARDS -->
+    <section class="view" id="v-cards" aria-labelledby="h-cards">
+      <div class="vhead">
+        <div>
+          <h2 id="h-cards">Cards</h2>
+          <p>Busque por palavra ou dispositivo (ex.: <span class="kbd">art. 5º</span>, <span class="kbd">usucapião</span>). Cada card guarda a questão de origem e o comentário.</p>
+        </div>
+      </div>
+      <div class="mats" id="mats" aria-label="Matérias"></div>
+      <div class="toolbar">
+        <div class="grow"><label class="sr-only" for="q">Pesquisar cards</label><input type="search" id="q" placeholder="Digite para pesquisar nos cards e nas questões" autocomplete="off"></div>
+        <label class="sr-only" for="fA">Assunto</label>
+        <select id="fA"><option value="all">Todos os assuntos</option></select>
+        <label class="sr-only" for="fS">Situação</label>
+        <select id="fS">
+          <option value="all">Todas as situações</option>
+          <option value="due">Para revisar hoje</option>
+          <option value="new">Nunca revisados</option>
+          <option value="reinc">Reincidentes (2+ erros)</option>
+          <option value="macete">Com macete</option>
+        </select>
+      </div>
+      <div class="meta-row"><span id="cCount"></span><button class="btn sm" type="button" id="cToggleQ">Mostrar todas as questões</button></div>
+      <div id="cList"></div>
+    </section>
+
+    <!-- REVISÃO -->
+    <section class="view" id="v-revisao" aria-labelledby="h-rev">
+      <div class="vhead">
+        <div>
+          <h2 id="h-rev">Revisão espaçada</h2>
+          <p>Leia a frente, tente lembrar a regra e só então mostre a resposta. Errei volta amanhã; hesitei repete o intervalo; lembrei aumenta (1, 3, 7, 15, 30, 60 e 120 dias).</p>
+        </div>
+      </div>
+      <div class="tiles" id="rvTiles"></div>
+      <div class="grid2">
+        <div class="panel">
+          <h3>Revisar agora</h3>
+          <div class="row">
+            <label class="f" for="rvM">Matéria<select id="rvM"></select></label>
+            <button class="btn primary" type="button" id="rvStart">Começar</button>
+          </div>
+          <p class="muted" style="font-size:13px;margin:12px 0 0">Atalhos: <span class="kbd">espaço</span> mostra a resposta; <span class="kbd">1</span> errei, <span class="kbd">2</span> hesitei, <span class="kbd">3</span> lembrei.</p>
+        </div>
+        <div class="panel">
+          <h3>Treino livre</h3>
+          <p class="muted" style="margin-top:0;font-size:13.5px">Passa pelos cards de uma matéria ou assunto fora da agenda, sem mudar as datas de revisão.</p>
+          <div class="row">
+            <label class="f" for="tlM">Matéria<select id="tlM"></select></label>
+            <label class="f" for="tlA">Assunto<select id="tlA"></select></label>
+            <button class="btn" type="button" id="tlStart">Treinar</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:14px">
+        <h3>Próximos 7 dias</h3>
+        <div class="week" id="rvWeek"></div>
+      </div>
+    </section>
+
+    <!-- PAINEL -->
+    <section class="view" id="v-painel" aria-labelledby="h-pn">
+      <div class="vhead"><div><h2 id="h-pn">Painel</h2><p>Onde estão seus erros e o que precisa de atenção.</p></div></div>
+      <div class="tiles" id="pnTiles"></div>
+      <div class="grid2">
+        <div class="panel"><h3>Cards por matéria</h3><div id="pnMat"></div></div>
+        <div class="panel"><h3>Assuntos que mais pesam</h3><p class="muted" style="margin:-6px 0 8px;font-size:13px">Número de cards somado aos erros na revisão.</p><div id="pnAss"></div></div>
+      </div>
+      <div class="panel" style="margin-top:14px"><h3>Reincidentes</h3><div id="pnReinc"></div></div>
+    </section>
+
+    <!-- BACKUP -->
+    <section class="view" id="v-backup" aria-labelledby="h-bk">
+      <div class="vhead"><div><h2 id="h-bk">Backup do caderno</h2><p>Seus cards e seu progresso ficam salvos neste navegador. Se você limpar os dados do navegador ou trocar de aparelho, eles não vão junto. Baixe um backup de vez em quando e use-o para levar o caderno a outro aparelho.</p></div></div>
+      <div class="grid2">
+        <div class="panel">
+          <h3>Exportar</h3>
+          <p class="muted" style="margin-top:0" id="bkInfo"></p>
+          <div class="row" style="margin-bottom:10px">
+            <button class="btn primary" id="bkSave" type="button">↓ Baixar arquivo de backup</button>
+            <button class="btn" id="bkCopy" type="button">Copiar backup</button>
+          </div>
+          <label class="sr-only" for="bkOut">Conteúdo do backup</label>
+          <textarea id="bkOut" readonly></textarea>
+        </div>
+        <div class="panel">
+          <h3>Importar</h3>
+          <p class="muted" style="margin-top:0">Carregue um arquivo de backup ou cole o conteúdo abaixo. O caderno atual será substituído pelo do backup.</p>
+          <div class="row" style="margin-bottom:10px">
+            <label class="btn" for="bkFile">Carregar arquivo de backup</label>
+            <input type="file" id="bkFile" accept=".json,application/json" class="sr-only">
+          </div>
+          <label class="sr-only" for="bkIn">Colar backup</label>
+          <textarea id="bkIn" placeholder="Cole aqui o conteúdo do backup"></textarea>
+          <div class="row" style="margin-top:10px"><button class="btn primary" id="bkRestore" type="button">Restaurar</button></div>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:14px;border-color:color-mix(in srgb,var(--bad) 40%,var(--line))">
+        <h3 style="color:var(--bad)">Zona de risco</h3>
+        <p class="muted" style="margin-top:0">Zera o progresso de revisão ou apaga o caderno inteiro. Não há como desfazer, então baixe um backup antes.</p>
+        <div class="row">
+          <button class="btn danger" id="bkWipeSr" type="button">Zerar só o progresso</button>
+          <button class="btn danger" id="bkWipeAll" type="button">Apagar o caderno inteiro</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- sessão de revisão -->
+<div class="overlay" id="studyOv" role="dialog" aria-modal="true" aria-labelledby="stTitle">
+  <div class="dialog study">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <strong id="stTitle">Revisão</strong>
+      <span class="muted" id="stPos"></span>
+      <button class="btn sm" id="stClose" type="button">Fechar</button>
+    </div>
+    <div class="bar"><i id="stBar" style="width:0"></i></div>
+    <div id="stBody"></div>
+  </div>
+</div>
+
+<!-- editor de card -->
+<div class="overlay" id="edOv" role="dialog" aria-modal="true" aria-labelledby="edTitle">
+  <div class="dialog" style="width:min(680px,100%)">
+    <strong id="edTitle" style="font-size:18px">Editar card</strong>
+    <div class="grid2" style="gap:10px">
+      <label class="f" for="edM">Matéria<input type="text" id="edM" list="dlMat" autocomplete="off"></label>
+      <label class="f" for="edA">Assunto<input type="text" id="edA" list="dlAss" autocomplete="off"></label>
+    </div>
+    <label class="f" for="edF">Frente<input type="text" id="edF"></label>
+    <label class="f" for="edV">Verso<textarea id="edV" class="prose" style="min-height:110px"></textarea></label>
+    <div class="grid2" style="gap:10px">
+      <label class="f" for="edD">Dispositivo<input type="text" id="edD"></label>
+      <label class="f" for="edK">Macete<input type="text" id="edK"></label>
+    </div>
+    <details><summary class="muted" style="cursor:pointer;font-size:13px">Questão de origem, gabarito e comentário</summary>
+      <div style="display:grid;gap:10px;margin-top:10px">
+        <label class="f" for="edQ">Questão<textarea id="edQ" class="prose"></textarea></label>
+        <label class="f" for="edG">Gabarito<input type="text" id="edG"></label>
+        <label class="f" for="edC">Comentário<textarea id="edC" class="prose"></textarea></label>
+      </div>
+    </details>
+    <div class="row" style="justify-content:flex-end">
+      <button class="btn" id="edCancel" type="button">Cancelar</button>
+      <button class="btn primary" id="edSave" type="button">Salvar</button>
+    </div>
+  </div>
+</div>
+<datalist id="dlMat"></datalist>
+<datalist id="dlAss"></datalist>
+
+<!-- confirmação -->
+<div class="overlay" id="askOv" role="dialog" aria-modal="true" aria-labelledby="askMsg">
+  <div class="dialog">
+    <p id="askMsg" style="margin:0;font-weight:500"></p>
+    <div id="askTypeWrap" hidden><label class="f" for="askType">Digite <b>APAGAR</b> para confirmar<input type="text" id="askType" autocomplete="off"></label></div>
+    <div class="row" style="justify-content:flex-end">
+      <button class="btn" id="askNo" type="button">Cancelar</button>
+      <button class="btn primary" id="askYes" type="button">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+"use strict";
+/* ---------- utilidades ---------- */
+const $=s=>document.querySelector(s);
+const $$=s=>Array.from(document.querySelectorAll(s));
+const pad=n=>String(n).padStart(2,'0');
+const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const today=()=>iso(new Date());
+function parseIso(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
+function addDays(s,n){const d=parseIso(s);d.setDate(d.getDate()+n);return iso(d)}
+const brShort=s=>{if(!s)return'';const [y,m,d]=s.split('-');return d+'/'+m};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm=s=>String(s??'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const fmt=n=>n.toLocaleString('pt-BR');
+const newId=()=>'k'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+let toastT;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),2600)}
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}
+async function copyText(t,okMsg){
+  try{await navigator.clipboard.writeText(t);toast(okMsg||'Copiado');return true}
+  catch(e){
+    const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
+    let ok=false;try{ok=document.execCommand('copy')}catch(_){}
+    ta.remove();toast(ok?(okMsg||'Copiado'):'Não foi possível copiar: selecione e copie manualmente');return ok;
+  }
+}
+function md(s){
+  let h=esc(s);
+  h=h.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/(^|[\s(])\*(?!\s)(.+?)\*(?=[\s).,;:]|$)/g,'$1<em>$2</em>');
+  h=h.replace(/;\s*(?=\(\d+\))/g,';<br>').replace(/\n/g,'<br>');
+  return h;
+}
+function mdParas(s){return String(s||'').split(/\n{2,}/).map(p=>'<p>'+md(p)+'</p>').join('')}
+function hl(html,q){
+  if(!q)return html;
+  const re=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
+  return html.split(/(<[^>]+>)/).map(p=>p.startsWith('<')?p:p.replace(re,'<mark>$1</mark>')).join('');
+}
+function ask(msg,{okLabel='Confirmar',danger=false,typed=false}={}){
+  return new Promise(res=>{
+    $('#askMsg').textContent=msg;
+    const yes=$('#askYes');yes.textContent=okLabel;yes.className='btn '+(danger?'danger solid':'primary');
+    $('#askTypeWrap').hidden=!typed;$('#askType').value='';
+    $('#askOv').classList.add('on');(typed?$('#askType'):yes).focus();
+    const done=v=>{$('#askOv').classList.remove('on');yes.onclick=null;$('#askNo').onclick=null;res(v)};
+    yes.onclick=()=>{if(typed&&$('#askType').value.trim().toUpperCase()!=='APAGAR'){toast('Digite APAGAR para confirmar');return}done(true)};
+    $('#askNo').onclick=()=>done(false);
+  });
+}
+
+/* ---------- matérias (ENAM, magistratura e Defensoria), com cor e assuntos sugeridos ---------- */
+const TAX=[
+ ["Constitucional",215,["Teoria da Constituição","Poder constituinte","Reforma constitucional","Interpretação e eficácia das normas","Direitos e garantias fundamentais","Direitos sociais","Nacionalidade","Direitos políticos e partidos","Ações constitucionais","Controle de constitucionalidade","Organização do Estado","Repartição de competências","Intervenção","Poder Legislativo e processo legislativo","Fiscalização e Tribunal de Contas","Poder Executivo","Poder Judiciário","Funções essenciais à Justiça","Ordem econômica e financeira","Ordem social"]],
+ ["Administrativo",28,["Princípios e regime jurídico","Organização administrativa","Poderes administrativos","Ato administrativo","Agentes públicos","Licitações","Contratos administrativos","Serviços públicos e concessões","Bens públicos","Intervenção na propriedade","Responsabilidade civil do Estado","Controle da Administração","Improbidade administrativa","Processo administrativo","Lei Anticorrupção","LINDB"]],
+ ["Tributário",45,["Sistema tributário e competência","Princípios e imunidades","Espécies tributárias","Obrigação e fato gerador","Responsabilidade tributária","Crédito tributário","Prescrição e decadência","Administração tributária","Processo tributário"]],
+ ["Civil",145,["LINDB","Pessoas naturais","Pessoas jurídicas","Bens","Negócio jurídico","Prescrição e decadência","Obrigações","Contratos em geral","Contratos em espécie","Responsabilidade civil","Posse","Propriedade e usucapião","Direitos reais","Casamento e união estável","Regime de bens","Filiação","Alimentos","Guarda, tutela e curatela","Sucessões"]],
+ ["Processo Civil",175,["Normas fundamentais","Jurisdição e competência","Partes, procuradores e despesas","Litisconsórcio e intervenção de terceiros","Atos processuais e prazos","Tutela provisória","Procedimento comum","Provas","Sentença e coisa julgada","Cumprimento de sentença","Execução","Procedimentos especiais","Recursos","Precedentes, IRDR e IAC","Processo coletivo"]],
+ ["Penal",355,["Princípios e aplicação da lei penal","Teoria do crime","Concurso de pessoas","Penas e dosimetria","Extinção da punibilidade","Crimes contra a pessoa","Crimes contra o patrimônio","Crimes contra a dignidade sexual","Crimes contra a administração pública","Crimes contra a fé pública","Lei de Drogas","Crimes hediondos","Violência doméstica","Estatuto do Desarmamento","Outras leis penais especiais"]],
+ ["Processo Penal",330,["Princípios e sistema acusatório","Inquérito e investigação","Ação penal","Acordo de não persecução penal","Competência","Provas","Prisões e cautelares","Procedimentos e Júri","Nulidades","Recursos","Habeas corpus e revisão criminal","Execução penal","Juizados Especiais Criminais"]],
+ ["Empresarial",95,["Empresa e empresário","Sociedades","Títulos de crédito","Contratos empresariais","Propriedade industrial","Recuperação judicial","Falência"]],
+ ["Direitos Humanos",195,["Teoria geral","Sistema global (ONU)","Sistema interamericano","Tratados e incorporação","Controle de convencionalidade","Grupos vulneráveis","Igualdade e não discriminação"]],
+ ["Formação Humanística",60,["Filosofia do Direito","Sociologia do Direito","Psicologia judiciária","Ética e Estatuto da Magistratura","Teoria geral do direito e da política"]],
+ ["Difusos e Coletivos",120,["Teoria dos direitos coletivos","Ação civil pública","Meio ambiente","Consumidor","Pessoa idosa e PcD","Patrimônio público","Inquérito civil e TAC"]],
+ ["Infância e Juventude",270,["Proteção integral","Direitos fundamentais","Família substituta e adoção","Medidas de proteção","Ato infracional","Medidas socioeducativas","Conselho Tutelar","Crimes e infrações"]],
+ ["Institucional da Defensoria",250,["Defensoria na Constituição","LC 80/94","Lei orgânica estadual","Acesso à justiça","Atuação no processo (custos vulnerabilis)"]],
+ ["Criminologia",300,["Escolas e teorias","Vitimologia","Criminologia crítica","Política criminal"]],
+ ["Eleitoral",80,["Direitos políticos","Inelegibilidades","Partidos","Propaganda","Ações eleitorais","Crimes eleitorais"]]
+];
+const MORD=Object.fromEntries(TAX.map(([n],i)=>[n,i]));
+const MHUE=Object.fromEntries(TAX.map(([n,h])=>[n,h]));
+function mStyle(m){const h=MHUE[m];const s=h===undefined?0:50;const hh=h??220;return `--ml:hsl(${hh} ${s}% 38%);--md:hsl(${hh} ${s+5}% 68%)`}
+const byOrder=(a,b)=>(MORD[a]??99)-(MORD[b]??99)||a.localeCompare(b);
+
+/* ---------- estado e persistência ---------- */
+const LS_KEY='caderno-pessoal-v1';
+const STEPS=[1,3,7,15,30,60,120];
+function blank(){return {v:1,upd:0,cards:[],sr:{},log:{},bk:0}}
+function migrate(o){const b=blank();if(!o||typeof o!=='object')return b;for(const k in b){if(o[k]!==undefined)b[k]=o[k]}if(!Array.isArray(b.cards))b.cards=[];return b}
+let S=blank();
+try{const raw=lsGet(LS_KEY);if(raw)S=migrate(JSON.parse(raw))}catch(e){}
+let DATA=[],BYID={};
+function indexCards(){DATA=S.cards;BYID={};DATA.forEach(r=>{BYID[r.id]=r;r.k=norm([r.frente,r.verso,r.dispositivo,r.macete,r.assunto,r.materia,r.questao,r.comentario].join(' '))})}
+function save(){
+  S.upd=Date.now();
+  const clean={...S,cards:S.cards.map(({k,...r})=>r)};
+  if(!lsSet(LS_KEY,JSON.stringify(clean)))toast('Não consegui salvar neste navegador. Baixe um backup agora.');
+  indexCards();refreshSide();
+}
+function refreshSide(){
+  const el=$('#sync'),t=$('#syncTxt');el.className='sync';
+  const days=S.bk?Math.floor((Date.now()-S.bk)/864e5):null;
+  if(!DATA.length){t.textContent='Salvo neste navegador.';return}
+  if(days===null||days>=7){el.classList.add('warn');t.innerHTML=(days===null?'Você ainda não baixou nenhum backup.':`Último backup há ${days} dias.`)+' <a href="#backup">Fazer backup</a>'}
+  else{el.classList.add('ok');t.textContent='Salvo neste navegador. Último backup '+(days===0?'hoje':`há ${days} ${days===1?'dia':'dias'}`)+'.'}
+}
+
+/* ---------- agenda de revisão ---------- */
+const dueOf=r=>(S.sr[r.id]&&S.sr[r.id].due)||r.criado||today();
+const isNew=r=>!S.sr[r.id];
+const isDue=r=>dueOf(r)<=today();
+const lapses=r=>(S.sr[r.id]&&S.sr[r.id].lapses)||0;
+function schedule(id,g){
+  const c=S.sr[id]?{...S.sr[id]}:{step:0,lapses:0,reviews:0};
+  if(g===0){c.step=0;c.lapses=(c.lapses||0)+1;c.due=addDays(today(),1)}
+  else if(g===1){c.due=addDays(today(),STEPS[c.step])}
+  else{c.step=Math.min(c.step+1,STEPS.length-1);c.due=addDays(today(),STEPS[c.step])}
+  c.reviews=(c.reviews||0)+1;c.last=today();c.g=g;
+  S.sr[id]=c;const t=today();S.log[t]=S.log[t]||[0,0,0];S.log[t][g]++;save();
+}
+function nextLbl(id,g){
+  const step=(S.sr[id]&&S.sr[id].step)||0;
+  const d=g===0?1:g===1?STEPS[step]:STEPS[Math.min(step+1,STEPS.length-1)];
+  return d===1?'amanhã':'em '+d+' dias';
+}
+
+/* ---------- navegação ---------- */
+let current='nova';
+function route(){
+  const h=(location.hash||'').slice(1);
+  const views=['nova','cards','revisao','painel','backup'];
+  current=views.includes(h)?h:(DATA.length?'cards':'nova');
+  $$('nav.views a').forEach(a=>a.setAttribute('aria-current',a.dataset.v===current?'page':'false'));
+  $$('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+current));
+  renderCurrent();
+}
+function renderCurrent(){
+  if(current==='cards')renderList();
+  else if(current==='revisao')renderRev();
+  else if(current==='painel')renderPainel();
+  else if(current==='backup')renderBackup();
+}
+function refreshAll(){refreshHeader();refreshSide();renderCurrent()}
+function refreshHeader(){
+  const due=DATA.filter(isDue).length;
+  const lg=S.log[today()]||[0,0,0];const done=lg[0]+lg[1]+lg[2];
+  const tot=done+due;const p=tot?Math.round(done*100/tot):0;
+  $('#ovPct').textContent=p+'%';$('#ovBar').style.width=p+'%';
+  $('#ovDone').textContent=fmt(done)+(done===1?' revisado':' revisados');
+  $('#ovDue').textContent=due?fmt(due)+' pendentes':'em dia';
+  $('#navDue').textContent=fmt(due);$('#navCards').textContent=fmt(DATA.length);
+  const mats=new Set(DATA.map(r=>r.materia)).size;
+  $('#baseInfo').textContent=DATA.length?`${fmt(DATA.length)} cards · ${mats} ${mats===1?'matéria':'matérias'}`:'Questões erradas viram cards';
+}
+
+/* ---------- NOVA QUESTÃO ---------- */
+function buildPrompt(q,marc){
+  const tax=TAX.map(([n,,as])=>`- ${n}: ${as.join('; ')}`).join('\n');
+  return `Você é um professor de cursinho para concursos jurídicos (ENAM, magistratura e Defensoria Pública). Eu errei (ou acertei com dúvida) a questão abaixo e quero transformá-la em flashcards de revisão.
+
+QUESTÃO:
+"""
+${q.trim()}
+"""
+${marc?`Alternativa que eu marquei: ${marc}\n`:''}
+Produza:
+1. "gabarito": a alternativa correta e o fundamento legal em uma linha. Ex.: "D — art. 60, III, CF".
+2. "comentario": curto (até ~150 palavras). Primeiro, por que a correta está certa (1-2 frases). Depois, uma linha por alternativa errada dizendo onde está a pegadinha, no formato "**A:** ...". Use **negrito** só nas palavras-chave. Se houver dúvida real sobre o gabarito ou sobre a lei ou jurisprudência atual, diga.
+3. "materia": exatamente um destes nomes: ${TAX.map(t=>t[0]).join(', ')}.
+4. "assunto": de preferência um dos assuntos listados abaixo para a matéria; se nenhum servir, um nome curto novo.
+5. "cards": 1 a 3 flashcards neste formato:
+   - "frente": proposição curta que nomeia o tema, sem pergunta longa e sem copiar o enunciado. Ex.: "Emenda à CF por iniciativa das Assembleias: requisitos"; "Honorários abaixo de 10%: hipóteses no CPC".
+   - "verso": só as regras ou requisitos, enumerados "(1) ...; (2) ...; (3) ...", com o dispositivo entre parênteses e números, prazos e quóruns em **negrito**. Sem explicação longa.
+   - Se o erro vem de confundir dois institutos parecidos, inclua um card "Par-pegadinha: X × Y" com as duas regras lado a lado.
+   - "dispositivo": o artigo principal, ex.: "art. 60, III, CF".
+   - "macete": um macete curto, se houver um bom; senão "".
+
+Assuntos por matéria:
+${tax}
+
+Considere a legislação vigente e a jurisprudência atual do STF e do STJ.
+Responda SOMENTE com um bloco JSON, sem texto antes ou depois, neste formato:
+{"gabarito":"...","comentario":"...","materia":"...","assunto":"...","cards":[{"frente":"...","verso":"...","dispositivo":"...","macete":""}]}`;
+}
+function extractJSON(txt){
+  let t=String(txt||'').trim();
+  const fence=t.match(/```(?:json)?\s*([\s\S]*?)```/i);if(fence)t=fence[1];
+  const a=t.indexOf('{'),b=t.lastIndexOf('}');if(a<0||b<=a)throw new Error('sem json');
+  t=t.slice(a,b+1).replace(/[“”]/g,'"');
+  return JSON.parse(t);
+}
+let PV=null; // prévia em edição
+function renderPreview(){
+  const box=$('#preview');
+  if(!PV){box.innerHTML='';return}
+  const mats=TAX.map(t=>t[0]);
+  box.innerHTML=`
+    <div class="panel" style="margin-top:16px;display:grid;gap:14px">
+      <h3 style="margin:0">Confira antes de salvar</h3>
+      ${PV.gabarito||PV.comentario?`<div class="qbox" style="max-width:none">${PV.gabarito?`<p class="gb">Gabarito: ${esc(PV.gabarito)}</p>`:''}${PV.comentario?`<div>${mdParas(PV.comentario)}</div>`:''}</div>`:''}
+      <div class="grid2" style="gap:10px">
+        <label class="f" for="pvM">Matéria<select id="pvM"><option value="">Escolha a matéria</option>${mats.map(m=>`<option ${m===PV.materia?'selected':''}>${esc(m)}</option>`).join('')}${PV.materia&&!mats.includes(PV.materia)?`<option selected>${esc(PV.materia)}</option>`:''}</select></label>
+        <label class="f" for="pvA">Assunto<input type="text" id="pvA" list="dlAss" value="${esc(PV.assunto)}" autocomplete="off"></label>
+      </div>
+      <div id="pvCards" style="display:grid;gap:10px">${PV.cards.map((c,i)=>`
+        <div class="pvcard">
+          <div class="row" style="justify-content:space-between;align-items:center"><span class="muted" style="font-size:12.5px;font-weight:600">CARD ${i+1}</span><button class="btn sm danger" type="button" data-rm="${i}">Remover</button></div>
+          <label class="f" for="pvF${i}">Frente<input type="text" id="pvF${i}" data-i="${i}" data-k="frente" value="${esc(c.frente)}"></label>
+          <label class="f" for="pvV${i}">Verso<textarea id="pvV${i}" class="prose" data-i="${i}" data-k="verso">${esc(c.verso)}</textarea></label>
+          <div class="grid2" style="gap:10px">
+            <label class="f" for="pvD${i}">Dispositivo<input type="text" id="pvD${i}" data-i="${i}" data-k="dispositivo" value="${esc(c.dispositivo)}"></label>
+            <label class="f" for="pvK${i}">Macete<input type="text" id="pvK${i}" data-i="${i}" data-k="macete" value="${esc(c.macete)}"></label>
+          </div>
+        </div>`).join('')||'<p class="muted" style="margin:0">Nenhum card. Adicione pelo menos um.</p>'}
+      </div>
+      <div class="row" style="justify-content:space-between">
+        <button class="btn" type="button" id="pvAdd">Adicionar card</button>
+        <div class="row"><button class="btn" type="button" id="pvDiscard">Descartar</button><button class="btn primary" type="button" id="pvSave">Salvar no caderno</button></div>
+      </div>
+    </div>`;
+  const fillAss=()=>{$('#dlAss').innerHTML=assuntosDe($('#pvM').value).map(a=>`<option value="${esc(a)}">`).join('')};
+  fillAss();
+  $('#pvM').onchange=()=>{PV.materia=$('#pvM').value;fillAss()};
+  $('#pvA').oninput=e=>{PV.assunto=e.target.value};
+  $$('#pvCards [data-k]').forEach(el=>el.oninput=()=>{PV.cards[+el.dataset.i][el.dataset.k]=el.value});
+  $$('#pvCards [data-rm]').forEach(b=>b.onclick=()=>{PV.cards.splice(+b.dataset.rm,1);renderPreview()});
+  $('#pvAdd').onclick=()=>{PV.cards.push({frente:'',verso:'',dispositivo:'',macete:''});renderPreview()};
+  $('#pvDiscard').onclick=()=>{PV=null;renderPreview()};
+  $('#pvSave').onclick=savePreview;
+  box.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function assuntosDe(m){
+  const base=(TAX.find(t=>t[0]===m)||[0,0,[]])[2].slice();
+  DATA.forEach(r=>{if(r.materia===m&&r.assunto&&!base.includes(r.assunto))base.push(r.assunto)});
+  return base;
+}
+function savePreview(){
+  PV.materia=$('#pvM').value.trim();PV.assunto=$('#pvA').value.trim();
+  const ok=PV.cards.filter(c=>String(c.frente).trim()&&String(c.verso).trim());
+  if(!PV.materia){toast('Escolha a matéria');return}
+  if(!PV.assunto){toast('Escolha ou digite o assunto');return}
+  if(!ok.length){toast('Preencha frente e verso de pelo menos um card');return}
+  const t=today();
+  ok.forEach(c=>S.cards.push({id:newId(),materia:PV.materia,assunto:PV.assunto,frente:String(c.frente).trim(),verso:String(c.verso).trim(),dispositivo:String(c.dispositivo||'').trim(),macete:String(c.macete||'').trim(),questao:PV.questao||'',gabarito:PV.gabarito||'',comentario:PV.comentario||'',marcada:PV.marcada||'',criado:addDays(t,1)}));
+  save();
+  toast(`${ok.length} ${ok.length===1?'card salvo':'cards salvos'} em ${PV.materia} › ${PV.assunto}. Primeira revisão amanhã.`);
+  PV=null;$('#nq').value='';$('#nqMarc').value='';$('#na').value='';$('#promptOut').value='';renderPreview();refreshHeader();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ---------- editor de card ---------- */
+let edId=null;
+function openEditor(id){
+  edId=id;const r=id?BYID[id]:{materia:'',assunto:'',frente:'',verso:'',dispositivo:'',macete:'',questao:'',gabarito:'',comentario:''};
+  $('#edTitle').textContent=id?'Editar card':'Novo card';
+  $('#edM').value=r.materia;$('#edA').value=r.assunto;$('#edF').value=r.frente;$('#edV').value=r.verso;
+  $('#edD').value=r.dispositivo||'';$('#edK').value=r.macete||'';$('#edQ').value=r.questao||'';$('#edG').value=r.gabarito||'';$('#edC').value=r.comentario||'';
+  $('#dlMat').innerHTML=[...new Set(TAX.map(t=>t[0]).concat(DATA.map(r=>r.materia)))].map(m=>`<option value="${esc(m)}">`).join('');
+  const fillAss=()=>{$('#dlAss').innerHTML=assuntosDe($('#edM').value).map(a=>`<option value="${esc(a)}">`).join('')};
+  fillAss();$('#edM').oninput=fillAss;
+  $('#edOv').classList.add('on');$('#edM').focus();
+}
+function closeEditor(){$('#edOv').classList.remove('on');edId=null}
+function saveEditor(){
+  const v={materia:$('#edM').value.trim(),assunto:$('#edA').value.trim(),frente:$('#edF').value.trim(),verso:$('#edV').value.trim(),dispositivo:$('#edD').value.trim(),macete:$('#edK').value.trim(),questao:$('#edQ').value.trim(),gabarito:$('#edG').value.trim(),comentario:$('#edC').value.trim()};
+  if(!v.materia||!v.assunto||!v.frente||!v.verso){toast('Matéria, assunto, frente e verso são obrigatórios');return}
+  if(edId){Object.assign(BYID[edId],v)}else{S.cards.push({id:newId(),...v,criado:today()})}
+  save();closeEditor();refreshAll();toast(edId?'Card atualizado':'Card criado');
+}
+async function delCard(id){
+  const r=BYID[id];if(!r)return;
+  if(!(await ask(`Excluir o card "${r.frente}"?`,{okLabel:'Excluir',danger:true})))return;
+  S.cards=S.cards.filter(x=>x.id!==id);delete S.sr[id];save();refreshAll();toast('Card excluído');
+}
+
+/* ---------- CARDS ---------- */
+const F={m:'all',a:'all',s:'all',q:''};
+let openQ=new Set(),allQ=false;
+function renderMats(){
+  const cnt={};DATA.forEach(r=>cnt[r.materia]=(cnt[r.materia]||0)+1);
+  const ms=Object.keys(cnt).sort(byOrder);
+  if(F.m!=='all'&&!cnt[F.m])F.m='all';
+  $('#mats').innerHTML=`<button type="button" data-m="all" aria-pressed="${F.m==='all'}">Todas <b>${fmt(DATA.length)}</b></button>`+
+    ms.map(m=>`<button type="button" data-m="${esc(m)}" style="${mStyle(m)}" aria-pressed="${F.m===m}"><span class="dot"></span>${esc(m)} <b>${cnt[m]}</b></button>`).join('');
+}
+function renderAssOptions(){
+  const as=[...new Set(DATA.filter(r=>F.m==='all'||r.materia===F.m).map(r=>r.assunto))].sort((a,b)=>a.localeCompare(b));
+  if(F.a!=='all'&&!as.includes(F.a))F.a='all';
+  $('#fA').innerHTML='<option value="all">Todos os assuntos</option>'+as.map(a=>`<option ${a===F.a?'selected':''}>${esc(a)}</option>`).join('');
+}
+function cardHTML(r,q){
+  const lp=lapses(r),due=dueOf(r),t=today();
+  let st=isNew(r)?`<span class="chip new">nunca revisado</span>`:'';
+  st+=due<=t?`<span class="chip due">revisar hoje</span>`:`<span class="chip">próxima revisão ${brShort(due)}</span>`;
+  const show=allQ||openQ.has(r.id);
+  return `<article class="card" style="${mStyle(r.materia)}">
+    <h4 class="fr">${hl(md(r.frente),q)}</h4>
+    <p class="vs">${hl(md(r.verso),q)}</p>
+    ${r.macete?`<div class="mac"><b>Macete:</b> ${hl(md(r.macete),q)}</div>`:''}
+    <div class="top">${r.dispositivo?`<span class="chip">${hl(esc(r.dispositivo),q)}</span>`:''}${st}${lp>=2?`<span class="chip bad">reincidente · ${lp}× errado</span>`:lp?`<span class="chip">${lp}× errado</span>`:''}</div>
+    ${show&&(r.questao||r.comentario)?`<div class="qbox">${r.questao?`<p class="qq">${hl(md(r.questao),q)}</p>`:''}${r.gabarito?`<p class="gb">Gabarito: ${esc(r.gabarito)}</p>`:''}${r.comentario?`<div>${hl(mdParas(r.comentario),q)}</div>`:''}</div>`:''}
+    <div class="acts">${r.questao||r.comentario?`<button class="btn sm" type="button" data-q="${r.id}" aria-expanded="${show}">${show?'Ocultar questão':'Ver questão'}</button>`:''}<span class="sp"></span><button class="btn sm" type="button" data-ed="${r.id}">Editar</button><button class="btn sm danger" type="button" data-del="${r.id}">Excluir</button></div>
+  </article>`;
+}
+function filtered(){
+  const qn=norm(F.q).trim();const t=today();
+  return DATA.filter(r=>(F.m==='all'||r.materia===F.m)&&(F.a==='all'||r.assunto===F.a)
+    &&(F.s==='all'||(F.s==='due'&&dueOf(r)<=t)||(F.s==='new'&&isNew(r))||(F.s==='reinc'&&lapses(r)>=2)||(F.s==='macete'&&r.macete))
+    &&(!qn||r.k.includes(qn)));
+}
+function renderList(){
+  renderMats();renderAssOptions();$('#fS').value=F.s;
+  const list=filtered();const q=F.q.trim();
+  $('#cCount').innerHTML=`<b>${fmt(list.length)}</b> de ${fmt(DATA.length)} cards`;
+  $('#cToggleQ').textContent=allQ?'Ocultar todas as questões':'Mostrar todas as questões';
+  if(!list.length){$('#cList').innerHTML=`<div class="empty">${DATA.length?'Nenhum card com esse filtro.':'Seu caderno ainda está vazio. Comece em <a href="#nova">Nova questão</a>.'}</div>`;return}
+  const g={};list.forEach(r=>{(g[r.materia]??={});(g[r.materia][r.assunto]??=[]).push(r)});
+  $('#cList').innerHTML=Object.keys(g).sort(byOrder).map(m=>{
+    const asg=g[m];const n=Object.values(asg).reduce((s,a)=>s+a.length,0);
+    return `<section class="mgroup" style="${mStyle(m)}"><div class="mhead"><span class="dot"></span><h3>${esc(m)}</h3><span class="n">${n} ${n===1?'card':'cards'}</span></div>
+      ${Object.keys(asg).sort((a,b)=>a.localeCompare(b)).map(a=>`<div class="ahead">${esc(a)}</div><div class="list">${asg[a].map(r=>cardHTML(r,q)).join('')}</div>`).join('')}
+    </section>`;
+  }).join('');
+}
+
+/* ---------- REVISÃO ---------- */
+function matOptions(sel,withCount){
+  const cnt={};DATA.forEach(r=>{if(!withCount||isDue(r))cnt[r.materia]=(cnt[r.materia]||0)+1});
+  const ms=Object.keys(cnt).sort(byOrder);
+  const tot=withCount?DATA.filter(isDue).length:DATA.length;
+  sel.innerHTML=`<option value="all">Todas${withCount?' ('+tot+')':''}</option>`+ms.map(m=>`<option value="${esc(m)}">${esc(m)}${withCount?' ('+cnt[m]+')':''}</option>`).join('');
+}
+function renderRev(){
+  const t=today(),due=DATA.filter(isDue),nw=DATA.filter(isNew);
+  const lg=S.log[t]||[0,0,0];const reinc=DATA.filter(r=>lapses(r)>=2).length;
+  $('#rvTiles').innerHTML=`
+    <div class="tile today"><div class="k">Para revisar hoje</div><div class="v">${fmt(due.length)}</div><div class="s">${fmt(due.filter(isNew).length)} nunca revisados</div></div>
+    <div class="tile good"><div class="k">Revisados hoje</div><div class="v">${fmt(lg[0]+lg[1]+lg[2])}</div><div class="s">${lg[2]} lembrei · ${lg[1]} hesitei · ${lg[0]} errei</div></div>
+    <div class="tile"><div class="k">Cards no caderno</div><div class="v">${fmt(DATA.length)}</div><div class="s">${fmt(nw.length)} ainda não revisados</div></div>
+    <div class="tile ${reinc?'late':''}"><div class="k">Reincidentes</div><div class="v">${fmt(reinc)}</div><div class="s">errados 2+ vezes</div></div>`;
+  const keepM=$('#rvM').value;matOptions($('#rvM'),true);if(keepM)$('#rvM').value=keepM;if(!$('#rvM').value)$('#rvM').value='all';
+  $('#rvStart').disabled=!due.length;$('#rvStart').textContent=due.length?'Começar':'Nada para hoje';
+  const keepT=$('#tlM').value;matOptions($('#tlM'),false);if(keepT)$('#tlM').value=keepT;if(!$('#tlM').value)$('#tlM').value='all';
+  $('#tlStart').disabled=!DATA.length;
+  fillTlA();
+  const days=[...Array(7)].map((_,i)=>addDays(t,i));
+  const counts=days.map((d,i)=>DATA.filter(r=>i===0?dueOf(r)<=d:dueOf(r)===d).length);const mx=Math.max(1,...counts);
+  const wd=['dom','seg','ter','qua','qui','sex','sáb'];
+  $('#rvWeek').innerHTML=days.map((d,i)=>`<div class="c ${i===0?'t':''}"><div class="col" style="height:${Math.round(counts[i]/mx*100)}%"></div><b>${counts[i]}</b><span>${i===0?'hoje':wd[parseIso(d).getDay()]+' '+brShort(d)}</span></div>`).join('');
+}
+function fillTlA(){
+  const m=$('#tlM').value,keep=$('#tlA').value;
+  const as=[...new Set(DATA.filter(r=>m==='all'||r.materia===m).map(r=>r.assunto))].sort((a,b)=>a.localeCompare(b));
+  $('#tlA').innerHTML='<option value="all">Todos</option>'+as.map(a=>`<option>${esc(a)}</option>`).join('');
+  if(as.includes(keep))$('#tlA').value=keep;
+}
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+let Q={list:[],i:0,shown:false,free:false,tally:[0,0,0]};
+function startStudy(ids,title,free){
+  if(!ids.length){toast('Nenhum card nesse recorte');return}
+  Q={list:shuffle(ids.slice()),i:0,shown:false,free,tally:[0,0,0]};
+  $('#stTitle').textContent=title;$('#studyOv').classList.add('on');renderStudy();
+}
+function closeStudy(){$('#studyOv').classList.remove('on');refreshAll()}
+function renderStudy(){
+  const n=Q.list.length;$('#stBar').style.width=Math.round(Q.i*100/n)+'%';
+  if(Q.i>=n){
+    $('#stPos').textContent='';
+    $('#stBody').innerHTML=`<div class="panel" style="display:grid;gap:10px"><strong style="font-size:18px">${Q.free?'Treino concluído':'Revisão concluída'}</strong>
+      <div class="score"><span style="color:var(--bad)">${Q.tally[0]} errei</span><span style="color:var(--warn)">${Q.tally[1]} hesitei</span><span style="color:var(--ok)">${Q.tally[2]} lembrei</span></div>
+      <p class="muted" style="margin:0">${Q.free?'O treino livre não altera as datas de revisão.':'As próximas revisões já estão agendadas.'}</p>
+      <div><button class="btn primary" type="button" id="stDone">Fechar</button></div></div>`;
+    $('#stDone').onclick=closeStudy;return;
+  }
+  const r=BYID[Q.list[Q.i]];
+  if(!r){Q.i++;renderStudy();return}
+  $('#stPos').textContent=(Q.i+1)+' de '+n;
+  $('#stBody').innerHTML=`
+    <div class="front" style="${mStyle(r.materia)}"><span class="kk"><span class="dot"></span>${esc(r.materia)} › ${esc(r.assunto)}</span><div class="big">${md(r.frente)}</div></div>
+    <div class="ans ${Q.shown?'':'hid'}" aria-hidden="${!Q.shown}">${md(r.verso)}${r.macete?`<div style="margin-top:10px;font-size:14px"><b style="color:var(--brass)">Macete:</b> ${md(r.macete)}</div>`:''}${r.dispositivo?`<div class="muted" style="margin-top:8px;font-size:13px">${esc(r.dispositivo)}</div>`:''}</div>
+    ${!Q.shown?`<button class="btn primary" type="button" id="stShow">Mostrar resposta <span class="kbd" style="color:inherit;border-color:currentColor">espaço</span></button>`:
+      `<div class="grades">
+        <button type="button" class="g0" data-g="0">Errei<small>${Q.free?'tecla 1':'volta '+nextLbl(r.id,0)+' · 1'}</small></button>
+        <button type="button" class="g1" data-g="1">Hesitei<small>${Q.free?'tecla 2':'volta '+nextLbl(r.id,1)+' · 2'}</small></button>
+        <button type="button" class="g2" data-g="2">Lembrei<small>${Q.free?'tecla 3':'volta '+nextLbl(r.id,2)+' · 3'}</small></button>
+      </div>`}`;
+  const sb=$('#stShow');if(sb){sb.onclick=()=>{Q.shown=true;renderStudy()};sb.focus()}
+  $$('#stBody [data-g]').forEach(b=>b.onclick=()=>grade(+b.dataset.g));
+}
+function grade(g){
+  if(!Q.shown||Q.i>=Q.list.length)return;
+  Q.tally[g]++;if(!Q.free)schedule(Q.list[Q.i],g);
+  Q.i++;Q.shown=false;refreshHeader();renderStudy();
+}
+
+/* ---------- PAINEL ---------- */
+function renderPainel(){
+  const reinc=DATA.filter(r=>lapses(r)>=2).sort((a,b)=>lapses(b)-lapses(a));
+  let rev=0,ok=0;Object.values(S.log).forEach(l=>{rev+=l[0]+l[1]+l[2];ok+=l[2]});
+  const mats=new Set(DATA.map(r=>r.materia)).size;
+  $('#pnTiles').innerHTML=`
+    <div class="tile"><div class="k">Cards</div><div class="v">${fmt(DATA.length)}</div><div class="s">em ${mats} ${mats===1?'matéria':'matérias'}</div></div>
+    <div class="tile"><div class="k">Revisões feitas</div><div class="v">${fmt(rev)}</div><div class="s">desde o início</div></div>
+    <div class="tile good"><div class="k">Taxa de "lembrei"</div><div class="v">${rev?Math.round(ok*100/rev)+'%':'—'}</div><div class="s">nas revisões feitas</div></div>
+    <div class="tile ${reinc.length?'late':''}"><div class="k">Reincidentes</div><div class="v">${fmt(reinc.length)}</div><div class="s">errados 2+ vezes</div></div>`;
+  const bm={};DATA.forEach(r=>bm[r.materia]=(bm[r.materia]||0)+1);
+  const mRows=Object.entries(bm).sort((a,b)=>b[1]-a[1]);const mx=Math.max(1,...mRows.map(x=>x[1]));
+  $('#pnMat').innerHTML=mRows.map(([m,n])=>`<div class="arow" style="${mStyle(m)}"><span class="nm">${esc(m)}</span><span class="bar"><i style="width:${Math.round(n/mx*100)}%"></i></span><span class="n">${n}</span></div>`).join('')||'<p class="muted" style="margin:0">Sem cards ainda.</p>';
+  const ba={};DATA.forEach(r=>{const k=r.materia+' › '+r.assunto;ba[k]=ba[k]||{m:r.materia,a:r.assunto,v:0};ba[k].v+=1+lapses(r)});
+  const aRows=Object.entries(ba).sort((a,b)=>b[1].v-a[1].v).slice(0,10);const ax=Math.max(1,...aRows.map(x=>x[1].v));
+  $('#pnAss').innerHTML=aRows.map(([k,o])=>`<div class="arow" style="${mStyle(o.m)}"><span class="nm" title="${esc(k)}">${esc(o.a)}</span><span class="bar"><i style="width:${Math.round(o.v/ax*100)}%"></i></span><span class="n">${o.v}</span></div>`).join('')||'<p class="muted" style="margin:0">Sem cards ainda.</p>';
+  $('#pnReinc').innerHTML=reinc.length?`<div class="list">${reinc.map(r=>cardHTML(r,'')).join('')}</div>`:'<p class="muted" style="margin:0">Nenhum card errado duas vezes ou mais. Quando aparecer, é ponto fraco real: vale voltar à doutrina daquele assunto.</p>';
+}
+
+/* ---------- BACKUP ---------- */
+function backupText(){const clean={...S,cards:S.cards.map(({k,...r})=>r)};return JSON.stringify({app:'caderno-pessoal',exportado:new Date().toISOString(),estado:clean})}
+function renderBackup(){
+  $('#bkOut').value=backupText();
+  const days=S.bk?Math.floor((Date.now()-S.bk)/864e5):null;
+  $('#bkInfo').textContent=`${fmt(DATA.length)} cards e o progresso de revisão. `+(days===null?'Nenhum backup baixado ainda.':`Último backup: ${days===0?'hoje':'há '+days+(days===1?' dia':' dias')}.`);
+}
+function restoreFrom(txt){
+  try{const o=JSON.parse(txt);const st=o.estado||o;if(!st||typeof st!=='object'||!Array.isArray(st.cards))throw 0;
+    S=migrate(st);save();refreshAll();toast('Backup restaurado: '+fmt(S.cards.length)+' cards')}catch(e){toast('Arquivo de backup inválido')}
+}
+
+/* ---------- eventos ---------- */
+function bind(){
+  $('#copyPrompt').onclick=()=>{
+    const q=$('#nq').value.trim();if(!q){toast('Cole a questão no passo 1 primeiro');$('#nq').focus();return}
+    const p=buildPrompt(q,$('#nqMarc').value.trim());$('#promptOut').value=p;
+    copyText(p,'Pedido copiado. Cole na sua IA e envie.');
+  };
+  $('#readAns').onclick=()=>{
+    const t=$('#na').value.trim();if(!t){toast('Cole a resposta da IA primeiro');$('#na').focus();return}
+    let o;try{o=extractJSON(t)}catch(e){toast('Não encontrei os cards na resposta. Copie a resposta inteira da IA e tente de novo.');return}
+    const cards=Array.isArray(o.cards)?o.cards:[];
+    if(!cards.length){toast('A resposta não trouxe cards. Peça à IA para refazer no formato pedido.');return}
+    PV={gabarito:String(o.gabarito||''),comentario:String(o.comentario||''),materia:String(o.materia||''),assunto:String(o.assunto||''),
+      cards:cards.slice(0,5).map(c=>({frente:String(c.frente||''),verso:String(c.verso||''),dispositivo:String(c.dispositivo||''),macete:String(c.macete||'')})),
+      questao:$('#nq').value.trim(),marcada:$('#nqMarc').value.trim()};
+    renderPreview();
+  };
+  $('#clearNova').onclick=()=>{$('#nq').value='';$('#nqMarc').value='';$('#na').value='';$('#promptOut').value='';PV=null;renderPreview()};
+  $('#manualNew').onclick=()=>openEditor(null);
+  $('#edCancel').onclick=closeEditor;$('#edSave').onclick=saveEditor;
+  $('#mats').onclick=e=>{const b=e.target.closest('button');if(!b)return;F.m=b.dataset.m;F.a='all';renderList()};
+  let qT;$('#q').oninput=e=>{clearTimeout(qT);qT=setTimeout(()=>{F.q=e.target.value;renderList()},150)};
+  $('#fA').onchange=e=>{F.a=e.target.value;renderList()};
+  $('#fS').onchange=e=>{F.s=e.target.value;renderList()};
+  $('#cToggleQ').onclick=()=>{allQ=!allQ;openQ.clear();renderList()};
+  document.addEventListener('click',e=>{
+    const q=e.target.closest('[data-q]');
+    if(q){const id=q.dataset.q;if(allQ){allQ=false;DATA.forEach(r=>{if(r.id!==id)openQ.add(r.id)})}else openQ.has(id)?openQ.delete(id):openQ.add(id);renderCurrent();return}
+    const ed=e.target.closest('[data-ed]');if(ed){openEditor(ed.dataset.ed);return}
+    const del=e.target.closest('[data-del]');if(del){delCard(del.dataset.del)}
+  });
+  $('#rvStart').onclick=()=>{const m=$('#rvM').value;startStudy(DATA.filter(r=>isDue(r)&&(m==='all'||r.materia===m)).map(r=>r.id),m==='all'?'Revisão de hoje':'Revisão · '+m,false)};
+  $('#tlM').onchange=fillTlA;
+  $('#tlStart').onclick=()=>{const m=$('#tlM').value,a=$('#tlA').value;startStudy(DATA.filter(r=>(m==='all'||r.materia===m)&&(a==='all'||r.assunto===a)).map(r=>r.id),'Treino livre'+(a!=='all'?' · '+a:m!=='all'?' · '+m:''),true)};
+  $('#stClose').onclick=closeStudy;
+  $('#bkSave').onclick=()=>{
+    S.bk=Date.now();save();const txt=backupText();
+    const url=URL.createObjectURL(new Blob([txt],{type:'application/json'}));
+    const a=document.createElement('a');a.href=url;a.download=`backup-caderno-${today()}.json`;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),2000);renderBackup();toast('Backup baixado');
+  };
+  $('#bkCopy').onclick=async()=>{if(await copyText(backupText(),'Backup copiado')){S.bk=Date.now();save();renderBackup()}};
+  $('#bkFile').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(restoreFrom);e.target.value=''};
+  $('#bkRestore').onclick=()=>{const t=$('#bkIn').value.trim();if(!t){toast('Cole o conteúdo do backup primeiro');return}restoreFrom(t)};
+  $('#bkWipeSr').onclick=async()=>{if(!(await ask('Zerar todo o progresso de revisão? Os cards continuam no caderno.',{okLabel:'Zerar progresso',danger:true,typed:true})))return;
+    S.sr={};S.log={};save();refreshAll();toast('Progresso zerado')};
+  $('#bkWipeAll').onclick=async()=>{if(!(await ask('Apagar o caderno inteiro? Todos os cards e o progresso serão removidos deste navegador.',{okLabel:'Apagar tudo',danger:true,typed:true})))return;
+    S=blank();save();refreshAll();toast('Caderno apagado')};
+  document.addEventListener('keydown',e=>{
+    if($('#askOv').classList.contains('on')){if(e.key==='Escape')$('#askNo').click();return}
+    if($('#edOv').classList.contains('on')){if(e.key==='Escape')closeEditor();return}
+    if(e.target.matches('input,textarea,select'))return;
+    if($('#studyOv').classList.contains('on')){
+      if(e.key==='Escape'){closeStudy();return}
+      if(!Q.shown&&(e.key===' '||e.key==='Enter')&&Q.i<Q.list.length){e.preventDefault();Q.shown=true;renderStudy();return}
+      if(Q.shown&&/^[1-3]$/.test(e.key)){grade(+e.key-1)}
+    }
+  });
+  window.addEventListener('hashchange',route);
+}
+
+indexCards();bind();refreshHeader();refreshSide();route();
+})();
+</script>
+</body>
+
+</html>
